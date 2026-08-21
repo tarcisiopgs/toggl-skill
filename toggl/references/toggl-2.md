@@ -21,13 +21,20 @@ Esta é a diferença conceitual que mais confunde quem vem do Track: no Toggl 2.
 | Dimensão | Campos | Origem |
 |---|---|---|
 | Planejado | `planned_start`, `planned_duration`, `calendar_event_id` | evento do Google Calendar sincronizado |
-| Realizado | `start`, `stop`, `duration` | tempo efetivamente rastreado |
+| Realizado | `start`, `duration` | tempo efetivamente rastreado |
 
-Um compromisso de agenda entra como lançamento **planejado** e só ganha `start`/`stop` quando vira trabalho de fato. Na prática a maioria dos registros de uma conta com calendário sincronizado nunca é executada.
+Um compromisso de agenda entra como lançamento **planejado** e só ganha `start`/`duration` quando vira trabalho de fato. Na prática a maioria dos registros de uma conta com calendário sincronizado nunca é executada.
 
 Isso importa porque somar tudo infla o total de horas — você acaba faturando reunião que não aconteceu. **Para "quanto foi realmente trabalhado", filtre por `start` presente.** Se o que você quer é o inverso — comparar previsto contra realizado — as duas dimensões no mesmo registro são exatamente o que torna isso possível, e é o motivo de o modelo ser assim.
 
 Os campos variam entre registros do mesmo retorno: um lançamento planejado simplesmente não traz `start`. Código que assume a presença dos campos do primeiro item quebra no meio da lista.
+
+**Não existe `stop`.** O fim de um lançamento não é armazenado: ele é `start` mais
+`duration`, e o instante final se calcula. Quem vem do Track procura o campo,
+manda `stop` no corpo — que é aceito e ignorado — e depois lê a resposta sem
+achá-lo, concluindo que o lançamento ficou aberto. O que de fato distingue os
+dois estados é o `duration`: **nulo enquanto corre, número de segundos depois de
+encerrado**. É o análogo do `duration` negativo do Track.
 
 ## Rotas essenciais
 
@@ -106,7 +113,19 @@ Trinta requisições por hora é pouco. Evite varrer endpoints por exploração:
 
 **Datas em query param exigem RFC 3339 completo.** `date_from=2026-08-07` devolve 400 com `parsing time "2026-08-07" as "2006-01-02T15:04:05Z07:00"`. Use `2026-08-07T00:00:00Z`. Curiosamente, no *corpo* de uma consulta de relatório o campo `period.from` aceita `YYYY-MM-DD` — a regra não é uniforme, então na dúvida mande RFC 3339 completo.
 
+**Lançamento sem task some da listagem.** `GET ~/time-entries` traz por padrão só o
+que está vinculado a uma task, e tudo que foi criado por `POST ~/time-entries`
+(que é justamente o endpoint "taskless") fica de fora. A lista volta vazia e
+parece que o lançamento não foi criado — some passar `include_taskless=true`.
+Ao conferir se um registro entrou, use esse filtro antes de concluir que a
+escrita falhou.
+
 **`per_page` tem teto.** 200 é recusado; 100 passa.
+
+**`PATCH` responde 204 sem corpo.** A atualização deu certo, mas não há JSON para
+ler — um parser aplicado à resposta estoura com erro de decodificação e dá a
+impressão de que a escrita falhou. Confira pelo código de status e, se precisar
+do estado novo, releia o recurso com um `GET`.
 
 **Respostas de lista vêm embrulhadas.** O formato é `{"page": 1, "per_page": 100, "data": [...]}` — os registros estão em `data`, não na raiz.
 

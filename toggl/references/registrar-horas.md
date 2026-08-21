@@ -26,18 +26,26 @@ curl -s -u "${TOKEN}:api_token" "$BT/me/time_entries/current"
 
 No Toggl 2.0 o retorno vazio significa nada rodando. No Track, verifique se `duration` é negativo — é essa a marca de "em execução".
 
+A marca equivalente no Toggl 2.0 é o **`duration` nulo**: um lançamento em curso
+tem `start` preenchido e `duration: null`; um já encerrado traz o número de
+segundos. Não procure um campo de fim — o modelo é `start` + `duration` e não
+existe `stop` no payload. Quem vem do Track tende a mandar um `stop` no corpo,
+que é ignorado em silêncio, e depois lê a resposta achando que o lançamento
+ficou aberto.
+
 Ao inspecionar o resultado, olhe se há `project_id`. Timer rodando sem projeto está acumulando tempo que não vai aparecer em nenhuma fatura.
 
 ## Iniciar e parar o timer
 
 ```bash
-# Toggl 2.0 — iniciar
+# Toggl 2.0 — iniciar. `type` é obrigatório: "activity" ou "break".
 curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"description":"Ajuste no checkout","project_id":1234567}' \
+  -d '{"type":"activity","description":"Ajuste no checkout","project_id":1234567}' \
   "$B2/tracking/start"
 
-# Toggl 2.0 — parar
+# Toggl 2.0 — parar. O corpo é obrigatório e leva o instante do fim em `end`.
 curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"end":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
   "$B2/tracking/stop"
 ```
 
@@ -57,9 +65,11 @@ curl -s -X PATCH -u "${TOKEN}:api_token" \
 O caso mais comum na prática: você trabalhou e esqueceu de ligar o timer.
 
 ```bash
-# Toggl 2.0 — 2 horas ontem, das 14h às 16h (horário local convertido para UTC)
+# Toggl 2.0 — 2 horas ontem, das 14h às 16h (horário local convertido para UTC).
+# Um lançamento é `start` + `duration`; não existe campo de fim aqui.
 curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{
+    "type": "activity",
     "description": "Revisão de PR",
     "project_id": 1234567,
     "start": "2026-08-20T17:00:00Z",
@@ -67,6 +77,11 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/
     "billable": true
   }' "$B2/time-entries"
 ```
+
+O `type` é obrigatório nos dois casos, e omiti-lo devolve um 400 cuja mensagem
+aponta para um schema interno em vez do campo — `CreateTasklessPayload.Payload.
+PayloadWithoutDuration.Type`, para o POST de lançamento. Lendo rápido, parece
+problema de payload malformado; é só o `type` faltando.
 
 ```bash
 # Track — mesma coisa: start + duration positiva em segundos
