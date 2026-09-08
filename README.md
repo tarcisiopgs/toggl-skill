@@ -14,6 +14,12 @@ O `-g` instala globalmente (nível de usuário), disponível em todos os agentes
 
 Para instalar apenas no projeto atual, remova o `-g`.
 
+## Configuração e personalizações locais
+
+Esta é a versão pública e genérica: não define cliente, projeto, workspace, moeda, fuso, condição de faturamento ou gerenciador de credenciais para o usuário. A skill só se aplica quando Toggl foi mencionado ou já está configurado como a integração escolhida.
+
+Mantenha preferências e fluxos pessoais em instruções locais do agente ou do projeto, fora deste repositório público. Codex e Claude podem consumir essas instruções conforme a configuração de cada ambiente. Antes de atualizar uma instalação com alterações locais, preserve uma cópia e revise o diff: não substitua suas personalizações pela versão pública sem incorporá-las separadamente. Nunca inclua tokens nessas instruções.
+
 ## O problema que a skill resolve
 
 Existem **dois produtos Toggl com APIs separadas e incompatíveis**, e a documentação deles vive lado a lado sem deixar isso evidente:
@@ -57,7 +63,7 @@ O `SKILL.md` carrega o essencial e a decisão de qual produto usar; as referênc
 
 ## Fontes
 
-Todo o conteúdo é derivado da documentação oficial em [engineering.toggl.com](https://engineering.toggl.com) e das especificações OpenAPI publicadas pelo Toggl, verificado contra as APIs reais em agosto de 2026. Este é um projeto independente, sem vínculo com o Toggl.
+O conteúdo usa a documentação oficial em [engineering.toggl.com](https://engineering.toggl.com) e as especificações OpenAPI publicadas pelo Toggl. Em setembro de 2026, a correção do exemplo de listagem de projetos foi conferida na [especificação Focus](https://engineering.toggl.com/docs/focus/openapi/); esta revisão de portabilidade não revalidou todas as rotas nem executou escritas na API. Este é um projeto independente, sem vínculo com o Toggl.
 
 Encontrou algo desatualizado ou incorreto? Abra uma issue ou um PR.
 

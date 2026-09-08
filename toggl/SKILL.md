@@ -1,6 +1,6 @@
 ---
 name: toggl
-description: Integração com as APIs do Toggl para controle e registro de horas — iniciar e parar timer, lançar tempo retroativo, somar horas por projeto ou cliente, gerar relatório de faturamento e submeter timesheet. Cobre os DOIS produtos, que são APIs distintas e incompatíveis entre si - Toggl Track (`api.track.toggl.com`, Basic auth) e Toggl 2.0 (`focus.toggl.com`, Bearer). Use sempre que aparecer "Toggl", `toggl_sk_`, `api_token`, `focus.toggl.com`, `api.track.toggl.com`, time entry, workspace_id, ou quando a tarefa envolver registrar horas trabalhadas, apontar tempo em projeto, fechar horas do mês, calcular quanto faturar por cliente ou descobrir onde o tempo foi parar — mesmo que o Toggl não seja nomeado. Use também antes de consultar a documentação do Toggl por WebFetch ou curl, e para decidir em qual dos dois produtos uma credencial funciona.
+description: Integração com as APIs Toggl Track e Toggl 2.0 para timers, registros de horas, relatórios e timesheets. Use quando o usuário mencionar Toggl ou seus domínios, pedir documentação do Toggl ou quando o contexto já estabelecer Toggl como a integração de tempo escolhida. Pedidos genéricos de controle de horas, faturamento, workspace ou api_token não ativam esta skill por si só.
 ---
 
 # Toggl
@@ -46,7 +46,7 @@ A spec do Toggl 2.0 é **Swagger 2.0**, não OpenAPI 3: os schemas ficam em `def
 
 ## Credenciais
 
-Guarde o token num gerenciador de segredos e leia de lá na hora do uso, em vez de deixá-lo em `.env` versionado ou no histórico do shell. Com 1Password:
+Use o mecanismo de credenciais já configurado pelo usuário (variável de ambiente, gerenciador de segredos ou injeção segura do agente). Os exemplos esperam `TOKEN` no ambiente; não registre seu valor em arquivos versionados, logs ou histórico do shell. Não escolha um provedor de segredos por padrão. Se o usuário usa 1Password, esta é uma opção:
 
 ```bash
 TOKEN=$(op read "op://<vault>/<item>/<seção>/<campo>")
@@ -57,12 +57,6 @@ Duas coisas específicas do Toggl que valem saber antes de mexer:
 **No Toggl 2.0 existe apenas uma API key ativa por usuário.** Criar uma nova revoga a anterior em silêncio, e a key só é exibida uma vez, no momento da criação, em `focus.toggl.com/settings`. Não há como manter duas em paralelo, então "rotacionar para testar" quebra toda integração que já usava a antiga. Planeje a troca antes de gerar.
 
 **No Track a rotação é igualmente destrutiva**: regenerar o token em `track.toggl.com/profile` invalida o anterior imediatamente.
-
-Se o nome da seção contiver um ponto — "Toggl 2.0" é o caso óbvio — escape ao gravar com o CLI do 1Password, porque a sintaxe é `[<seção>.]<campo>[[tipo]]=<valor>` e o ponto do "2.0" vira um segundo separador:
-
-```bash
-op item edit "<item>" 'Toggl 2\.0.API Key[password]=toggl_sk_...'
-```
 
 ## Descobrir os IDs
 
@@ -85,8 +79,10 @@ Leia só a que corresponde à tarefa — cada uma é autossuficiente.
 | `references/relatorios.md` | Somar horas, faturar por cliente, exportar CSV — a engine de query do 2.0 e a Reports API v3 do Track |
 | `references/registrar-horas.md` | Receitas prontas: iniciar/parar timer, lançar hora retroativa, fechar o mês, submeter timesheet |
 
-## O erro que não estoura
+## Configuração do usuário e lançamentos sem projeto
 
-Os dois produtos aceitam lançamento de tempo **sem projeto**. A requisição retorna 200, o tempo é contabilizado no total geral e some do relatório por projeto — que é justamente o relatório usado para faturar. Ninguém percebe até o fechamento do mês, quando as horas não batem.
+Use a configuração explícita da tarefa ou do ambiente para workspace, projeto (inclusive ausência intencional), `billable`, moeda e fuso horário. Não deduza que toda hora é faturável, que a moeda é BRL ou que o usuário está no Brasil. Se faltar uma escolha necessária para a operação, esclareça apenas essa escolha antes de escrever dados; não altere as configurações da conta para ajustar um exemplo.
 
-Ao criar ou iniciar um lançamento, trate projeto ausente como um problema a levantar, não como um detalhe opcional. E ao somar horas para faturamento, confira quanto tempo caiu em "sem projeto" antes de entregar o número — se houver volume relevante ali, o total por projeto está incompleto e a conta vai sair menor do que deveria.
+Tempo sem projeto pode ser uma escolha válida de organização pessoal. Respeite essa escolha ao criar ou iniciar lançamentos. Quando o contexto for faturamento por projeto, sinalize que tempo sem projeto precisa ser conferido para evitar omissões. Nos relatórios, apresente esse tempo separadamente quando relevante, sem classificá-lo automaticamente como erro ou como faturável.
+
+Datas, IDs, descrições e valores nas referências são ilustrativos. Substitua-os pelos dados da tarefa. Personalizações locais do usuário complementam estas instruções genéricas; não as publique nem as sobrescreva ao atualizar a skill.

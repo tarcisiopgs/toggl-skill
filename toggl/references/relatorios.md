@@ -12,7 +12,7 @@ Note que esta rota **não** leva `organization_id`. Aceita `?response_format=jso
 
 O corpo descreve uma consulta analítica — filtros, agregações, agrupamentos, ordenações, transformações, moeda e fuso. Todos os campos de primeiro nível são obrigatórios na estrutura, mesmo quando vazios; omitir um array resulta em 400.
 
-Horas por projeto num período:
+Horas por projeto num período. Datas e IDs abaixo são ilustrativos. Substitua `currency` pela moeda escolhida para o relatório; `USD` é apenas um exemplo. Configure o fuso do período conforme o usuário. Use `view_in_my_timezone: true` somente quando o fuso do perfil corresponder ao desejado; confira a semântica vigente na documentação antes de usar outro recorte.
 
 ```json
 {
@@ -26,7 +26,7 @@ Horas por projeto num período:
   "transformations": [],
   "pagination": {"page": 1, "per_page": 50},
   "limit": 100,
-  "currency": "BRL",
+  "currency": "USD",
   "conversion_date": null,
   "modifiers": {},
   "view_in_my_timezone": true
@@ -51,7 +51,7 @@ A resposta em formato `table` vem como matriz, com a primeira linha servindo de 
 
 Com `include_dicts=true` você recebe `dictionaries` para traduzir os IDs em nomes sem chamadas adicionais — é o que evita um N+1 de `GET /projects/{id}`. Durações vêm em **segundos**; divida por 3600 para horas.
 
-Repare na linha com `project_id: 0` quando ela aparecer: é o tempo **sem projeto**. Ela não é ruído — é exatamente o tempo que sumiria de uma fatura por projeto. Vale reportá-la explicitamente em vez de descartar.
+Repare na linha com `project_id: 0` quando ela aparecer: é o tempo **sem projeto**. Reporte esse tempo separadamente quando relevante. Ele pode ser intencional; no contexto de faturamento por projeto, confira sua atribuição antes de fechar os valores.
 
 Há também `POST /reports/workspaces/{ws}/profitability` (rentabilidade com projeção) e `POST /reports/workspaces/{ws}/workload` (carga de trabalho).
 
@@ -88,4 +88,4 @@ A V2 continua suportada e sem prazo de migração anunciado. Encontrar código e
 
 ## Escolhendo o período
 
-Ao fechar mês para faturamento, o corte é por fuso horário e não por UTC — um lançamento iniciado às 22h de 31 de agosto em São Paulo é 1º de setembro em UTC e migra de mês sem avisar. No Toggl 2.0, `view_in_my_timezone: true` resolve isso na consulta. No Track, converta as bordas do período para o fuso do usuário antes de montar o intervalo.
+Use o fuso escolhido pelo usuário para definir as bordas do período; não assuma um país ou um offset fixo. Um lançamento perto da meia-noite pode pertencer a dias ou meses diferentes em UTC e no fuso local. No Toggl 2.0, confira se o fuso do perfil usado por `view_in_my_timezone` corresponde ao recorte solicitado. No Track, monte o intervalo a partir das bordas locais convertidas, considerando mudanças de horário de verão quando aplicáveis.
